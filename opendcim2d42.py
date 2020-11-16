@@ -16,7 +16,7 @@ import sys
 import pymysql as sql
 import codecs
 import requests
-import base64 
+from requests.auth import HTTPBasicAuth
 import random
 import json
 
@@ -31,19 +31,19 @@ import json
 
 
 # ====== MySQL Source (openDCIM) ====== #
-DB_IP     = ''
-DB_PORT   = ''
-DB_NAME   = ''
-DB_USER   = ''
-DB_PWD    = ''
-# ====== Log settings  ==================== #
-LOGFILE    = 'migration.log'
-DEBUG      = True
+DB_IP    = ''
+DB_PORT  = ''
+DB_NAME  = ''
+DB_USER  = ''
+DB_PWD   = ''
+# ====== Log settings ==================== #
+LOGFILE   = 'migration.log'
+DEBUG     = True
 # ====== Device42 upload settings ========= #
-D42_USER   = ''
-D42_PWD    = ''
-D42_URL    = 'https://'
-DRY_RUN    = False
+D42_USER  = ''
+D42_PWD   = ''
+D42_URL   = 'https://'
+DRY_RUN   = False
 
 
 def is_valid_ip(ip):
@@ -123,21 +123,22 @@ def is_valid_ipv6(ip):
     """, re.VERBOSE | re.IGNORECASE | re.DOTALL)
     return pattern.match(ip) is not None
 
-class Logger():
+
+class Logger:
     def __init__(self, logfile):
-        self.logfile  = LOGFILE
+        self.logfile = LOGFILE
 
     def writer(self, msg):  
         if LOGFILE and LOGFILE != '':
             with codecs.open(self.logfile, 'a', encoding = 'utf-8') as f:
                 f.write(msg.strip()+'\r\n')  # \r\n for notepad
         try:
-            print msg
+            print(msg)
         except:
-            print msg.encode('ascii', 'ignore') + ' # < non-ASCII chars detected! >'
+            print(msg.encode('ascii', 'ignore') + ' # < non-ASCII chars detected! >')
 
 
-class REST():
+class REST:
     def __init__(self):
         self.password = D42_PWD
         self.username = D42_USER
@@ -147,26 +148,26 @@ class REST():
 
     def uploader(self, data, url):
         payload = data
+        auth = HTTPBasicAuth(self.username, self.password)
         headers = {
-            'Authorization': 'Basic ' + base64.b64encode(self.username + ':' + self.password),
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-        r = requests.post(url, data=payload, headers=headers, verify=False)
+        r = requests.post(url, data=payload, headers=headers, auth=auth, verify=False)
         msg = 'Status code: %s' % str(r.status_code)
         logger.writer(msg)
         if DEBUG:
-            msg =  unicode(payload)
+            msg = str(payload)
             logger.writer(msg)
             msg = str(r.text)
             logger.writer(msg)
 
     def fetcher(self, url):
+        auth = HTTPBasicAuth(self.username, self.password)
         headers = {
-            'Authorization': 'Basic ' + base64.b64encode(self.username + ':' + self.password),
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        r = requests.get(url, headers=headers, verify=False)
+        r = requests.get(url, headers=headers, auth=auth, verify=False)
         msg = 'Status code: %s' % str(r.status_code)
         logger.writer(msg)
         if DEBUG:
@@ -174,74 +175,73 @@ class REST():
             logger.writer(msg)
         return r.text
 
-
     def post_ip(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/ip/'
-            msg =  '\r\nPosting IP data to %s ' % url
+            msg = '\r\nPosting IP data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
-            
+
     def post_device(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/device/'
-            msg =  '\r\nPosting device data to %s ' % url
+            msg = '\r\nPosting device data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
-            
+
     def post_location(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/buildings/'
-            msg =  '\r\nPosting location data to %s ' % url
+            msg = '\r\nPosting location data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
-            
+
     def post_room(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/rooms/'
-            msg =  '\r\nPosting room data to %s ' % url
+            msg = '\r\nPosting room data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
-            
+
     def post_rack(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/racks/'
-            msg =  '\r\nPosting rack data to %s ' % url
+            msg = '\r\nPosting rack data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
-    
+
     def post_pdu(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/pdus/'
-            msg =  '\r\nPosting PDU data to %s ' % url
+            msg = '\r\nPosting PDU data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
 
     def post_pdu_update(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/pdus/rack/'
-            msg =  '\r\nUpdating PDU data to %s ' % url
+            msg = '\r\nUpdating PDU data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
 
     def post_pdu_model(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/pdu_models/'
-            msg =  '\r\nPosting PDU models from %s ' % url
+            msg = '\r\nPosting PDU models from %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
 
     def get_pdu_models(self):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/pdu_models/'
-            msg =  '\r\nFetching PDU models from %s ' % url
+            msg = '\r\nFetching PDU models from %s ' % url
             logger.writer(msg)
             self.fetcher(url)
-        
+
     def get_racks(self):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/racks/'
-            msg =  '\r\nFetching racks from %s ' % url
+            msg = '\r\nFetching racks from %s ' % url
             logger.writer(msg)
         data = self.fetcher(url)
         return data
@@ -253,45 +253,45 @@ class REST():
         return None
 
     def get_devices(self):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/devices/'
-            msg =  '\r\nFetching devices from %s ' % url
+            msg = '\r\nFetching devices from %s ' % url
             logger.writer(msg)
             data = self.fetcher(url)
             return data
 
     def get_buildings(self):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/buildings/'
-            msg =  '\r\nFetching buildings from %s ' % url
+            msg = '\r\nFetching buildings from %s ' % url
             logger.writer(msg)
             data = self.fetcher(url)
             return data
-            
+
     def get_rooms(self):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/rooms/'
-            msg =  '\r\nFetching rooms from %s ' % url
+            msg = '\r\nFetching rooms from %s ' % url
             logger.writer(msg)
             data = self.fetcher(url)
             return data
 
     def post_hardware(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/hardwares/'
-            msg =  '\r\nAdding hardware data to %s ' % url
+            msg = '\r\nAdding hardware data to %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
-            
+
     def post_device2rack(self, data):
-        if DRY_RUN == False:
+        if not DRY_RUN:
             url = self.base_url+'/api/1.0/device/rack/'
-            msg =  '\r\nAdding device to rack at %s ' % url
+            msg = '\r\nAdding device to rack at %s ' % url
             logger.writer(msg)
             self.uploader(data, url)
             
 
-class DB():
+class DB:
     def __init__(self):
         self.con = None
         self.tables = []
@@ -308,11 +308,10 @@ class DB():
         adrese = []
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = "SELECT PrimaryIP FROM fac_Device" 
-            cur.execute(q)
-            ips = cur.fetchall()
+        cur = self.con.cursor()
+        q = "SELECT PrimaryIP FROM fac_Device"
+        cur.execute(q)
+        ips = cur.fetchall()
         for line in ips:
             if line[0] != '':
                 ip = line[0]
@@ -320,27 +319,24 @@ class DB():
                     net.update({'ipaddress':ip})
                     rest.post_ip(net)
                 
-        with self.con:
-            cur = self.con.cursor()
-            q = "SELECT IPAddress FROM fac_PowerDistribution" 
-            cur.execute(q)
-            ips = cur.fetchall()
+        cur = self.con.cursor()
+        q = "SELECT IPAddress FROM fac_PowerDistribution"
+        cur.execute(q)
+        ips = cur.fetchall()
         for line in ips:
             if line[0] != '':
                 ip = line[0]
                 if is_valid_ip(ip):
                     net.update({'ipaddress':ip})
                     rest.post_ip(net)
-                
 
     def get_locations(self):
         building = {}
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT DatacenterID,Name,DeliveryAddress,Administrator FROM fac_DataCenter'
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT DatacenterID,Name,DeliveryAddress,Administrator FROM fac_DataCenter'
+        cur.execute(q)
         data = cur.fetchall()
         
         for row in data:
@@ -362,14 +358,13 @@ class DB():
         
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT ZoneID,DataCenterID,Description FROM fac_Zone'
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT ZoneID,DataCenterID,Description FROM fac_Zone'
+        cur.execute(q)
         data = cur.fetchall()
         for row in data:
             room_id = row[0]
-            dc  = row[1]
+            dc = row[1]
             name = row[2]
             dc = self.datacenters_dcim[dc]
             dc_id = building_map[dc]
@@ -388,10 +383,9 @@ class DB():
 
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT CabinetID,DatacenterID,Location,CabinetHeight,ZoneID FROM fac_Cabinet'  
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT CabinetID,DatacenterID,Location,CabinetHeight,ZoneID FROM fac_Cabinet'
+        cur.execute(q)
         data = cur.fetchall()
         for row in data:
             rack = {}
@@ -414,42 +408,36 @@ class DB():
                 rack.update({'building':did})
                 self.racks_dcim.update({cid:name})
                 rest.post_rack(rack)
-           
-    
+
     def get_datacenter_from_id(self, id):
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT Name FROM fac_DataCenter where DataCenterID = %d' % id
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT Name FROM fac_DataCenter where DataCenterID = %d' % id
+        cur.execute(q)
         data = cur.fetchone()
         return data
-        
-      
+
     def get_room_from_cabinet(self, cabinetID):
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT DatacenterID,Location,Model FROM fac_Cabinet where CabinetID = %d' % cabinetID
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT DatacenterID,Location,Model FROM fac_Cabinet where CabinetID = %d' % cabinetID
+        cur.execute(q)
         data = cur.fetchone()
         id, room, model = data
         datacenter = self.get_datacenter_from_id(id)[0]
         return datacenter, room, model
-        
-        
+
     def get_vendor_and_model(self, id):
         self.get_manufacturers()
         hardware = {}
         
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT ManufacturerID, Model FROM fac_DeviceTemplate WHERE TemplateID=%d' % id
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT ManufacturerID, Model FROM fac_DeviceTemplate WHERE TemplateID=%d' % id
+        cur.execute(q)
         data = cur.fetchone()
         try:
             id, model = data
@@ -458,18 +446,15 @@ class DB():
         vendor = self.manufacturers[id]
         return vendor, model
 
-
     def get_devices(self):
-
-        device        = {}
+        device = {}
         device2rack = {}
-        hardware     = {}
+        hardware = {}
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT Label, SerialNo, AssetTag, PrimaryIP, Cabinet,Position,Height,DeviceType,HalfDepth,BackSide, TemplateID FROM fac_Device'
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT Label, SerialNo, AssetTag, PrimaryIP, Cabinet,Position,Height,DeviceType,HalfDepth,BackSide, TemplateID FROM fac_Device'
+        cur.execute(q)
         data = cur.fetchall()
         for row in data:
             name, serial_no, comment, ip, rackid, position, size, devicetype, halfdepth, backside, tid = row
@@ -502,15 +487,13 @@ class DB():
                 if backside == '1':
                     device2rack.update({'orientation':'back'})
                 rest.post_device2rack(device2rack)
-    
         
     def get_manufacturers(self):
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT ManufacturerID, Name from fac_Manufacturer'
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT ManufacturerID, Name from fac_Manufacturer'
+        cur.execute(q)
         data = cur.fetchall()
         for row in data:
             id, vendor = row
@@ -519,10 +502,9 @@ class DB():
     def get_depth(self, id):
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT HalfDepth FROM fac_Device WHERE TemplateID=%d' % id
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT HalfDepth FROM fac_Device WHERE TemplateID=%d' % id
+        cur.execute(q)
         data = cur.fetchone()
         d = data[0]
         if d == 0:
@@ -536,10 +518,9 @@ class DB():
         
         if not self.con:
             self.connect()
-        with self.con:
-            cur = self.con.cursor()
-            q = 'SELECT TemplateID, ManufacturerID, Model, Height, Wattage, DeviceType, FrontPictureFile, RearPictureFile FROM fac_DeviceTemplate'
-            cur.execute(q)
+        cur = self.con.cursor()
+        q = 'SELECT TemplateID, ManufacturerID, Model, Height, Wattage, DeviceType, FrontPictureFile, RearPictureFile FROM fac_DeviceTemplate'
+        cur.execute(q)
         data = cur.fetchall()
         for row in data:
             TemplateID, ManufacturerID, Model, Height, Wattage, DeviceType, FrontPictureFile, RearPictureFile = row
@@ -550,7 +531,6 @@ class DB():
                 continue
 
             vendor = self.manufacturers[ManufacturerID]
-
 
             hardware.update({'name':Model})
             hardware.update({'size':Height})
@@ -570,6 +550,7 @@ class DB():
                 '''
                 rest.post_hardware(hardware)
 
+
 def main():
     db = DB()
     
@@ -585,5 +566,5 @@ if __name__ == '__main__':
     logger = Logger(LOGFILE)
     rest = REST()
     main()
-    print '\n[!] Done!'
+    print('\n[!] Done!')
     sys.exit()

@@ -8,7 +8,7 @@ This script migrates data (models:building, room, rack, hardware, device, ip) fr
 ### Requirements
 -----------------------------
 
-    * python 2.7.x
+    * python 2.6 and above
     * pymysql (you can install it with pip install pymysql)
     * requests (you can install it with pip install requests or apt-get install python-requests)
     * allow remote connections to OpenDCIM MySQL port
